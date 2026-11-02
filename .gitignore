@@ -1,0 +1,73 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .gitignore  –  IBM Granite Speech 5.0-2B Demo
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Secrets / configuration
+.env
+*.env
+
+# Project rules
+AGENTS.md
+.bob/mcp.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Runtime artefacts
+.app.pid
+.app.log
+
+# Input / output content (keep folders, ignore content)
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Folders starting with underscore
+_*/
+
+# Large model / binary files
+*.onnx
+*.onnx.data
+*.so
+*.tgz
+*.tar.gz
+*.zip
+*.dylib
+*.bin
+*.safetensors
+
+# Node
+node_modules/
+
+# Playwright MCP
+.playwright-mcp/
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/settings.json
+*.swp
+*.swo

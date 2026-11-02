@@ -1,0 +1,104 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Granite Speech 5.0-2B Demo – default configuration
+#
+# Copy this file to config/config.yaml and edit as needed.
+# Environment variables defined in .env override values here.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Granite Speech model ──────────────────────────────────────────────────────
+speech:
+  model_name: "ibm-granite/granite-speech-5.0-2b"
+  # device: auto           # "auto" | "cuda" | "mps" | "cpu"
+  device: auto
+  # dtype: auto            # "auto" | "bfloat16" | "float16" | "float32"
+  dtype: auto
+  # Local cache dir for HuggingFace weights (leave empty to use HF default ~/.cache/huggingface)
+  cache_dir: ""
+  # Maximum tokens generated per segment (increase for long-form audio)
+  max_new_tokens: 512
+
+  # ── Performance optimisation knobs ────────────────────────────────────────
+  # Tune these to reduce the 87 s / 2 s clip bottleneck on CPU.
+  perf:
+    # ── Short-clip token cap (BIGGEST single speedup on CPU) ─────────────────
+    # generate() cost is proportional to max_new_tokens even when the clip is
+    # only 2 s.  Capping to 64 turns an 87 s run into ~20-25 s on CPU.
+    # Increase if output is truncated on longer clips.
+    max_new_tokens_short: 64        # tokens cap for clips ≤ short_clip_threshold_s
+    short_clip_threshold_s: 10.0   # clips at/below this use the cap above
+
+    # ── Beam search width ─────────────────────────────────────────────────────
+    # 1 = greedy decode (fastest, accurate enough for ASR)
+    # 2-4 = beam search (better accuracy, linearly slower)
+    num_beams: 1
+
+    # ── KV-cache ─────────────────────────────────────────────────────────────
+    # Keep true: disabling removes the single biggest generate() optimisation.
+    use_cache: true
+
+    # ── INT-8 dynamic quantisation (CPU only, ~2× speedup) ───────────────────
+    # Quantises Linear layers to INT-8 after model load.
+    # No effect on CUDA/MPS. Slight accuracy reduction on noisy audio.
+    # Set true on CPU-only machines for best throughput.
+    int8_quantize: false
+
+    # ── torch.compile() (PyTorch ≥ 2.0, ~2-4× CPU speedup) ──────────────────
+    # One-time compilation cost ~60 s; all subsequent calls are faster.
+    # Recommended when running many files in batch.
+    compile: false
+
+    # ── Profiling: emit TimingBreakdown into every SpeechResult ──────────────
+    # Visible in the Gradio UI and saved to output/*.json.
+    # Set false in production to save a few microseconds per call.
+    profile: true
+
+# ── LLM backend ───────────────────────────────────────────────────────────────
+llm:
+  # Active backend: ollama | lmstudio | llamacpp | openai | anthropic
+  backend: "ollama"
+
+  # Ollama (local, default)
+  ollama:
+    base_url: "http://localhost:11434/v1"
+    model: "granite3.3:8b"
+
+  # LM Studio (local, OpenAI-compatible)
+  lmstudio:
+    base_url: "http://localhost:1234/v1"
+    model: "local-model"
+
+  # llama.cpp HTTP server
+  llamacpp:
+    base_url: "http://localhost:9931/v1"
+    model: "granite"
+
+  # OpenAI cloud – API key read from OPENAI_API_KEY env var
+  openai:
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o-mini"
+
+  # Anthropic Claude cloud – API key read from ANTHROPIC_API_KEY env var
+  anthropic:
+    base_url: "https://api.anthropic.com"
+    model: "claude-3-haiku-20240307"
+
+  # LLM generation parameters (shared across backends)
+  temperature: 0.3
+  max_tokens: 1024
+
+  # System prompt applied to every LLM call
+  system_prompt: |
+    You are an AI assistant that processes speech transcriptions.
+    When given a transcript, you may be asked to summarise, answer questions,
+    translate, or perform other language tasks.
+    Always be concise, accurate, and helpful.
+
+# ── Application ───────────────────────────────────────────────────────────────
+app:
+  # Gradio server settings
+  server_port: 7860
+  share: false
+  # Logging level: DEBUG | INFO | WARNING | ERROR
+  log_level: "INFO"
+  # Output directory for saved results
+  output_dir: "output"

@@ -1,0 +1,57 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# requirements.txt  –  IBM Granite Speech 5.0-2B Demo
+# Install with: uv pip install -r requirements.txt
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Speech model ──────────────────────────────────────────────────────────────
+# transformers>=4.52.1 required for native Granite Speech support
+transformers>=4.52.1
+huggingface-hub>=0.24.0
+
+# ── PyTorch (CPU; for GPU see https://pytorch.org/get-started/locally/) ───────
+# Uncomment ONE of the following depending on your hardware:
+# CPU only (default – works everywhere, slower):
+torch>=2.1.0
+# CUDA 12.1 (uncomment and remove the CPU line above):
+# torch>=2.1.0+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+# CUDA 11.8:
+# torch>=2.1.0+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+
+# ── Audio I/O ─────────────────────────────────────────────────────────────────
+# soundfile is the primary audio backend — pure Python, no FFmpeg required,
+# supports WAV/FLAC/OGG/AIFF on all platforms.
+soundfile>=0.12.1
+
+# torchaudio: optional but recommended for GPU-accelerated resampling.
+# IMPORTANT: torchaudio≥2.9 (released Oct 2025) removed its bundled audio
+# backends and made torchaudio.load() a thin alias to load_with_torchcodec(),
+# which requires torchcodec + FFmpeg.  The code handles this automatically —
+# it detects the version at startup and falls through to soundfile when
+# torchaudio≥2.9 is installed without torchcodec.
+# Pin to <2.9 for zero-FFmpeg setups:  torchaudio>=2.0.0,<2.9
+# Or install unrestricted and ensure FFmpeg is in PATH: torchaudio>=2.0.0
+torchaudio>=2.0.0
+
+# Optional: install torchcodec when using torchaudio≥2.9 (needs FFmpeg 4-8):
+#   uv pip install torchcodec
+# torchcodec
+
+# ── UI ────────────────────────────────────────────────────────────────────────
+gradio>=4.44.0
+
+# ── Audio utilities ───────────────────────────────────────────────────────────
+numpy>=1.24.0
+
+# ── System utilities ─────────────────────────────────────────────────────────
+psutil>=5.9.0
+
+# ── Config ────────────────────────────────────────────────────────────────────
+pyyaml>=6.0
+
+# ── Optional: accelerate enables device_map="auto" for multi-GPU / sharded ──
+# Without it the model loads fine on a single device (cpu / cuda / mps).
+accelerate>=0.30.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=7.0.0
+pytest-cov>=4.0.0
