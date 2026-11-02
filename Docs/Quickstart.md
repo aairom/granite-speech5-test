@@ -41,9 +41,9 @@ llm:
 brew install ollama        # macOS
 # or: https://ollama.com/download
 
-# Pull a model
-ollama pull granite3.3:8b
-# or a smaller model:
+# Pull a model (must match llm.ollama.model in config/config.yaml)
+ollama pull granite4.2:latest
+# or a lighter alternative:
 ollama pull llama3.2:3b
 ```
 
@@ -194,8 +194,7 @@ bash scripts/setup.sh   # idempotent — skips if certs already exist
 ## Running Tests
 
 ```bash
-source .venv/bin/activate
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 All tests run without GPU or internet — heavy model calls are mocked.

@@ -159,11 +159,17 @@ output/result_YYYYMMDD_HHMMSS.json
 | `SPEECH_MODEL` | `speech.model_name` | `ibm-granite/granite-speech-5.0-2b` | HF model ID |
 | `SPEECH_MAX_NEW_TOKENS` | `speech.max_new_tokens` | `512` | Max tokens per segment |
 | `LLM_BACKEND` | `llm.backend` | `ollama` | Active LLM backend |
-| `LLM_OLLAMA_MODEL` | `llm.ollama.model` | `granite3.3:8b` | Ollama model |
+| `LLM_OLLAMA_MODEL` | `llm.ollama.model` | `granite4.2:latest` | Ollama model |
 | `LLM_OPENAI_MODEL` | `llm.openai.model` | `gpt-4o-mini` | OpenAI model |
 | `OPENAI_API_KEY` | — | — | OpenAI secret key |
 | `ANTHROPIC_API_KEY` | — | — | Anthropic secret key |
 | `APP_PORT` | `app.server_port` | `7860` | Gradio server port |
+| `APP_SSL_CERTFILE` | `app.ssl_certfile` | `""` | Path to TLS cert for HTTPS |
+| `APP_SSL_KEYFILE` | `app.ssl_keyfile` | `""` | Path to TLS private key |
+| `SPEECH_INT8` | `speech.perf.int8_quantize` | `false` | INT-8 quantisation (CPU speedup) |
+| `SPEECH_NUM_BEAMS` | `speech.perf.num_beams` | `1` | Beam search width |
+| `SPEECH_PROFILE` | `speech.perf.profile` | `true` | Enable timing profiling |
+| `SPEECH_COMPILE` | `speech.perf.compile` | `false` | torch.compile() optimisation |
 
 ---
 
