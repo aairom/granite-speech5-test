@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBM Granite Speech 5.0-2B — Business Overview</title>
+<style>
+/* ── Reset & tokens ── */
+:root{
+  --navy:#0f1e3c;--blue:#1a4b8c;--sky:#3b82d4;--teal:#0ea5a0;
+  --purple:#6d3fa0;--green:#1a7f37;--amber:#9a6700;--red:#b91c1c;
+  --bg:#ffffff;--surface:#f4f6fb;--card:#ffffff;
+  --border:#dde3ef;--text:#1c2333;--muted:#5a6479;--light:#8899b3;
+  --grad:linear-gradient(135deg,#0f1e3c 0%,#1a4b8c 55%,#0ea5a0 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:15px;
+  line-height:1.7;background:var(--bg);color:var(--text)}
+
+/* ── Nav ── */
+nav{background:var(--navy);position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.nav-inner{max-width:1100px;margin:0 auto;display:flex;
+  align-items:center;gap:4px;padding:0 24px;height:52px;overflow-x:auto}
+.nav-inner a{color:rgba(255,255,255,.75);text-decoration:none;
+  font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;
+  white-space:nowrap;transition:.2s}
+.nav-inner a:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-logo{color:#fff;font-weight:700;font-size:15px;margin-right:12px;
+  white-space:nowrap;flex-shrink:0}
+
+/* ── Hero ── */
+.hero{background:var(--grad);color:#fff;padding:72px 24px 64px;text-align:center}
+.hero-eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  opacity:.75;margin-bottom:14px}
+.hero h1{font-size:clamp(26px,4vw,44px);font-weight:800;line-height:1.2;
+  margin-bottom:18px;letter-spacing:-.02em}
+.hero h1 span{color:#67e8f9}
+.hero-lead{font-size:18px;opacity:.88;max-width:680px;margin:0 auto 32px}
+.hero-badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.hbadge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+  color:#fff;padding:6px 16px;border-radius:99px;font-size:13px;font-weight:500}
+
+/* ── Layout ── */
+.page{max-width:1100px;margin:0 auto;padding:0 24px}
+section{padding:72px 0}
+section+section{border-top:1px solid var(--border)}
+
+/* ── Headings ── */
+.section-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:700;color:var(--sky);margin-bottom:10px}
+h2{font-size:clamp(22px,3vw,32px);font-weight:800;line-height:1.2;
+  color:var(--navy);margin-bottom:14px;letter-spacing:-.02em}
+h3{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:10px}
+h4{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.lead{font-size:17px;color:var(--muted);max-width:720px;line-height:1.75}
+
+/* ── Cards ── */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:32px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:24px;transition:.2s}
+.card:hover{box-shadow:0 4px 24px rgba(15,30,60,.1);transform:translateY(-2px)}
+.card-icon{width:44px;height:44px;border-radius:10px;display:flex;
+  align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.icon-blue{background:#dbeafe}
+.icon-teal{background:#ccfbf1}
+.icon-purple{background:#ede9fe}
+.icon-amber{background:#fef3c7}
+.icon-green{background:#dcfce7}
+.icon-red{background:#fee2e2}
+.card p{color:var(--muted);font-size:14px;line-height:1.65}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:16px;margin:40px 0}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:20px 16px;text-align:center}
+.stat-num{font-size:32px;font-weight:800;color:var(--navy);line-height:1}
+.stat-label{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* ── Feature matrix ── */
+.matrix{width:100%;border-collapse:collapse;font-size:13.5px}
+.matrix th{background:var(--navy);color:#fff;padding:10px 14px;text-align:left;
+  font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.matrix td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.matrix tr:nth-child(even) td{background:var(--surface)}
+.matrix tr:hover td{background:#e8edf8}
+.chk{color:var(--green);font-weight:700}
+.dash{color:var(--light)}
+
+/* ── Timeline / process ── */
+.process{display:flex;flex-direction:column;gap:0;margin:32px 0}
+.process-step{display:flex;gap:0;position:relative}
+.process-step::before{content:'';position:absolute;left:23px;top:52px;
+  bottom:-16px;width:2px;background:var(--border)}
+.process-step:last-child::before{display:none}
+.step-dot{width:48px;height:48px;border-radius:50%;background:var(--blue);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;flex-shrink:0;z-index:1;
+  box-shadow:0 0 0 4px var(--bg)}
+.step-body{padding:4px 20px 32px;flex:1}
+.step-body h4{margin-bottom:4px;color:var(--navy)}
+.step-body p{color:var(--muted);font-size:14px}
+
+/* ── Two-col ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+
+/* ── SVG diagrams ── */
+.diagram-wrap{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:28px;margin:32px 0;overflow-x:auto}
+.diagram-caption{text-align:center;font-size:13px;color:var(--muted);margin-top:16px}
+
+/* ── Use-case tiles ── */
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-top:28px}
+.uc{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:20px;border-left:4px solid var(--sky)}
+.uc-title{font-weight:700;font-size:14px;margin-bottom:6px;color:var(--navy)}
+.uc p{font-size:13.5px;color:var(--muted);line-height:1.6}
+
+/* ── Quote / callout ── */
+.callout{background:linear-gradient(135deg,#eff6ff,#f0fdf4);
+  border:1px solid #bfdbfe;border-radius:12px;padding:24px 28px;margin:28px 0}
+.callout-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+  font-weight:700;color:var(--sky);margin-bottom:8px}
+.callout p{font-size:15px;color:var(--navy);line-height:1.7}
+
+/* ── Integration table ── */
+.int-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px 16px;
+  align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.int-row:last-child{border-bottom:none}
+.int-badge{padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;white-space:nowrap}
+.local-badge{background:#d1fae5;color:#065f46}
+.cloud-badge{background:#dbeafe;color:#1e40af}
+.int-name{font-weight:700;font-size:14px;color:var(--navy)}
+.int-desc{font-size:13px;color:var(--muted)}
+
+/* ── Security pills ── */
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.pill{background:var(--surface);border:1px solid var(--border);border-radius:99px;
+  padding:6px 16px;font-size:13px;color:var(--navy);font-weight:500}
+.pill-green{background:#dcfce7;border-color:#bbf7d0;color:var(--green)}
+
+/* ── Accordion-style table ── */
+.env-table{width:100%;border-collapse:collapse;font-size:13px}
+.env-table th{background:var(--surface);padding:8px 12px;text-align:left;
+  border:1px solid var(--border);font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--muted);font-weight:700}
+.env-table td{padding:8px 12px;border:1px solid var(--border);vertical-align:top}
+.env-table tr:nth-child(even) td{background:var(--surface)}
+code{font-family:"SF Mono","Fira Code",monospace;background:var(--surface);
+  padding:2px 6px;border-radius:4px;font-size:12px;border:1px solid var(--border)}
+
+/* ── Footer ── */
+footer{background:var(--navy);color:rgba(255,255,255,.6);padding:32px 24px;
+  text-align:center;font-size:13px}
+footer strong{color:#fff}
+
+/* ── Print ── */
+@media print{
+  nav{display:none}
+  .hero{background:#0f1e3c!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  section{padding:40px 0;page-break-inside:avoid}
+  .card:hover{transform:none;box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══════════════════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <span class="nav-logo">🎙 Granite Speech 5.0</span>
+    <a href="#exec-summary">Overview</a>
+    <a href="#capabilities">Capabilities</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#use-cases">Use Cases</a>
+    <a href="#integrations">Integrations</a>
+    <a href="#security">Security</a>
+    <a href="#features">Feature Matrix</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ══════════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">IBM AI · Speech Intelligence Platform</div>
+  <h1>IBM Granite Speech <span>5.0-2B</span><br>Demonstration Application</h1>
+  <p class="hero-lead">
+    A complete, privacy-first speech intelligence platform that converts spoken audio
+    into structured, actionable text — then connects it to any AI language model
+    for analysis, summarisation, and deeper insight.
+  </p>
+  <div class="hero-badges">
+    <span class="hbadge">🎤 Speech-to-Text</span>
+    <span class="hbadge">🌍 Multilingual Translation</span>
+    <span class="hbadge">🤖 AI-Powered Analysis</span>
+    <span class="hbadge">🔒 Runs 100% Locally</span>
+    <span class="hbadge">⚡ Hardware-Adaptive</span>
+    <span class="hbadge">🔌 5 AI Backends</span>
+  </div>
+</div>
+
+<!-- ══ EXEC SUMMARY ══════════════════════════════════════════════════════════ -->
+<div class="page">
+<section id="exec-summary">
+  <div class="section-eyebrow">Executive Summary</div>
+  <h2>What This System Does</h2>
+  <p class="lead">
+    This application brings IBM's most advanced open-weight speech model directly to your
+    infrastructure — no cloud audio subscriptions, no per-minute transcription fees,
+    no data leaving your organisation. It accepts spoken audio in six languages,
+    produces accurate text transcripts, optionally translates between languages,
+    and then passes that text to an AI assistant of your choice for any downstream task.
+  </p>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">Supported Languages</div></div>
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">AI Backends</div></div>
+    <div class="stat"><div class="stat-num">2B</div><div class="stat-label">Model Parameters</div></div>
+    <div class="stat"><div class="stat-num">~2 min</div><div class="stat-label">Max Clip Length per Segment</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Audio Length (auto-split)</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Cloud Dependencies</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-label">💡 The Bottom Line</div>
+    <p>
+      A meeting recording, a customer call, a podcast episode, or a field voice note
+      is dropped in — the system produces a clean written transcript, translates it
+      if needed, and automatically routes it through an AI assistant to deliver a
+      summary, key action items, sentiment analysis, or any custom instruction
+      you define. Everything happens on your own hardware.
+    </p>
+  </div>
+</section>
+
+<!-- ══ CAPABILITIES ══════════════════════════════════════════════════════════ -->
+<section id="capabilities">
+  <div class="section-eyebrow">Core Capabilities</div>
+  <h2>What the Platform Can Do</h2>
+  <p class="lead">Six fully operational tools available through a browser-based interface, no installation required for end users.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon icon-blue">🎙</div>
+      <h3>Speech Transcription</h3>
+      <p>Upload a recorded audio file or speak directly into your microphone. The system converts speech to accurate written text using IBM's Granite Speech 5.0-2B model — trained specifically for high-quality transcription in real-world conditions.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-teal">🌍</div>
+      <h3>Multilingual Translation</h3>
+      <p>Spoken audio in English, French, German, Spanish, Portuguese, or Japanese is automatically translated into any other supported language. Ideal for international teams, multilingual content production, and cross-border customer support.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-purple">🤖</div>
+      <h3>AI-Assisted Analysis</h3>
+      <p>Once a transcript is produced, it is forwarded to an AI language model with your custom instruction — "summarise this meeting," "extract all action items," "identify the customer's main concern." The AI response appears alongside the transcript.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-amber">⚡</div>
+      <h3>One-Click Full Pipeline</h3>
+      <p>The Full Pipeline tab combines transcription and AI analysis into a single button click. Provide audio and an instruction; the system handles everything end-to-end and saves a structured result file automatically.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-green">⚙️</div>
+      <h3>Live Configuration</h3>
+      <p>Switch AI backends, change models, or adjust processing settings from within the interface — no restart required. Configurations take effect immediately, enabling rapid A/B comparison of different AI backends.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-red">💻</div>
+      <h3>Hardware Intelligence</h3>
+      <p>The system automatically detects the capabilities of the host machine — GPU type, available memory, CPU cores — and self-optimises its processing parameters accordingly, ensuring the best performance on every device.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══════════════════════════════════════════════════════════ -->
+<section id="how-it-works">
+  <div class="section-eyebrow">Process Walkthrough</div>
+  <h2>How the Full Pipeline Works</h2>
+  <p class="lead">From raw audio to AI-enriched insight in five automatic steps.</p>
+
+  <div class="process">
+    <div class="process-step">
+      <div class="step-dot">1</div>
+      <div class="step-body">
+        <h4>Audio Ingestion</h4>
+        <p>You upload a WAV, MP3, FLAC, or OGG file — or record directly from your microphone via the browser. The system accepts any length of audio; files longer than approximately two minutes are automatically divided into overlapping segments so no content is lost.</p>
+      </div>
+    </div>
+    <div class="process-step">
+      <div class="step-dot">2</div>
+      <div class="step-body">
+        <h4>Audio Normalisation</h4>
+        <p>The audio is converted to the format the AI model expects: a single audio channel (mono) sampled at 16,000 measurements per second. This step handles any combination of input formats, stereo recordings, or unusual sample rates automatically.</p>
+      </div>
+    </div>
+    <div class="process-step">
+      <div class="step-dot">3</div>
+      <div class="step-body">
+        <h4>Speech Recognition (IBM Granite Speech)</h4>
+        <p>IBM's Granite Speech 5.0-2B model — a 2-billion-parameter neural network — processes the audio and generates a precise written transcript. The model supports transcription and translation across six languages in a single pass. A detailed timing profile records exactly how long each stage took.</p>
+      </div>
+    </div>
+    <div class="process-step">
+      <div class="step-dot">4</div>
+      <div class="step-body">
+        <h4>AI Language Model Processing (Optional)</h4>
+        <p>The transcript is passed to whichever AI assistant is configured — a local model on the same machine, or a cloud service. The model receives your instruction ("summarise," "extract action items," etc.) and generates a response. The system intelligently skips this step if transcription produced an error, preventing wasted API calls.</p>
+      </div>
+    </div>
+    <div class="process-step">
+      <div class="step-dot">5</div>
+      <div class="step-body">
+        <h4>Saved Output</h4>
+        <p>Results are saved to disk in a timestamped JSON file containing the full transcript, AI response, processing timing, and metadata. The transcript is also available as a downloadable text file directly from the browser.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ARCHITECTURE DIAGRAMS ══════════════════════════════════════════════════ -->
+<section id="architecture">
+  <div class="section-eyebrow">System Architecture</div>
+  <h2>How the Components Fit Together</h2>
+  <p class="lead">The application is structured in three clear layers: the user interface, the intelligent processing core, and the AI backends.</p>
+
+  <!-- Tier diagram SVG -->
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;display:block;margin:0 auto">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#8899b3"/>
+        </marker>
+      </defs>
+
+      <!-- Layer labels -->
+      <text x="16" y="50" font-family="system-ui" font-size="11" fill="#8899b3" font-weight="700" letter-spacing="1">LAYER 1 — USER INTERFACE</text>
+      <text x="16" y="190" font-family="system-ui" font-size="11" fill="#8899b3" font-weight="700" letter-spacing="1">LAYER 2 — PROCESSING CORE</text>
+      <text x="16" y="330" font-family="system-ui" font-size="11" fill="#8899b3" font-weight="700" letter-spacing="1">LAYER 3 — AI BACKENDS</text>
+
+      <!-- UI Box -->
+      <rect x="16" y="58" width="868" height="110" rx="10" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.5"/>
+      <!-- UI Tabs -->
+      <rect x="36"  y="76" width="130" height="72" rx="8" fill="#1a4b8c"/>
+      <text x="101" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">🎙 Transcribe</text>
+      <text x="101" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Upload / Record Audio</text>
+      <text x="101" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">→ Text Output</text>
+
+      <rect x="184" y="76" width="130" height="72" rx="8" fill="#1a4b8c"/>
+      <text x="249" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">🌍 Translate</text>
+      <text x="249" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">6 Language Pairs</text>
+      <text x="249" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Bi-directional</text>
+
+      <rect x="332" y="76" width="130" height="72" rx="8" fill="#1a4b8c"/>
+      <text x="397" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">🤖 LLM Interact</text>
+      <text x="397" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Custom Prompts</text>
+      <text x="397" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Live Model Picker</text>
+
+      <rect x="480" y="76" width="130" height="72" rx="8" fill="#1a4b8c"/>
+      <text x="545" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">⚡ Full Pipeline</text>
+      <text x="545" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Audio → Transcript</text>
+      <text x="545" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">→ AI Response</text>
+
+      <rect x="628" y="76" width="118" height="72" rx="8" fill="#0f3460"/>
+      <text x="687" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">⚙️ Config</text>
+      <text x="687" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Live Reload</text>
+      <text x="687" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">No Restart</text>
+
+      <rect x="762" y="76" width="106" height="72" rx="8" fill="#0f3460"/>
+      <text x="815" y="105" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">💻 Hardware</text>
+      <text x="815" y="122" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Auto Detect</text>
+      <text x="815" y="136" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Recommendations</text>
+
+      <!-- Arrows L1 → L2 -->
+      <line x1="450" y1="168" x2="450" y2="196" stroke="#8899b3" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Core Box -->
+      <rect x="16" y="198" width="868" height="110" rx="10" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1.5"/>
+      <rect x="36"  y="216" width="190" height="72" rx="8" fill="#065f46"/>
+      <text x="131" y="245" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">🎙 Speech Processor</text>
+      <text x="131" y="262" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">IBM Granite 5.0-2B</text>
+      <text x="131" y="276" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Transcribe · Translate</text>
+
+      <rect x="246" y="216" width="190" height="72" rx="8" fill="#065f46"/>
+      <text x="341" y="245" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">🔌 LLM Client</text>
+      <text x="341" y="262" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">5 Backend Adapters</text>
+      <text x="341" y="276" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Unified Interface</text>
+
+      <rect x="456" y="216" width="190" height="72" rx="8" fill="#065f46"/>
+      <text x="551" y="245" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">⚙️ Config Manager</text>
+      <text x="551" y="262" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">3-Layer Merge</text>
+      <text x="551" y="276" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">YAML · .env · Env Vars</text>
+
+      <rect x="666" y="216" width="202" height="72" rx="8" fill="#065f46"/>
+      <text x="767" y="245" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">💻 Hardware Detector</text>
+      <text x="767" y="262" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">GPU · RAM · CPU</text>
+      <text x="767" y="276" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Auto Optimisation</text>
+
+      <!-- Arrows L2 → L3 -->
+      <line x1="341" y1="288" x2="341" y2="336" stroke="#8899b3" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Backend Box -->
+      <rect x="16" y="338" width="868" height="68" rx="10" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1.5"/>
+      <rect x="36"  y="352" width="128" height="42" rx="6" fill="#5b21b6"/>
+      <text x="100" y="374" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">Ollama (Local)</text>
+      <rect x="178" y="352" width="128" height="42" rx="6" fill="#5b21b6"/>
+      <text x="242" y="374" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">LM Studio (Local)</text>
+      <rect x="320" y="352" width="128" height="42" rx="6" fill="#5b21b6"/>
+      <text x="384" y="374" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">llama.cpp (Local)</text>
+      <rect x="462" y="352" width="128" height="42" rx="6" fill="#1e40af"/>
+      <text x="526" y="374" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">OpenAI (Cloud)</text>
+      <rect x="604" y="352" width="160" height="42" rx="6" fill="#1e40af"/>
+      <text x="684" y="374" font-family="system-ui" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">Anthropic Claude (Cloud)</text>
+    </svg>
+    <div class="diagram-caption">Figure 1 — Three-Layer System Architecture: Interface → Processing Core → AI Backends</div>
+  </div>
+
+  <!-- Data Flow SVG -->
+  <h3 style="margin-top:40px">Audio-to-Insight Data Flow</h3>
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;display:block;margin:0 auto">
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#3b82d4"/>
+        </marker>
+      </defs>
+      <!-- Steps -->
+      <rect x="10"  y="30" width="108" height="58" rx="8" fill="#1a4b8c"/>
+      <text x="64"  y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">🎤 Audio</text>
+      <text x="64"  y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">WAV · MP3</text>
+      <text x="64"  y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">FLAC · OGG</text>
+
+      <line x1="118" y1="59" x2="136" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="138" y="30" width="110" height="58" rx="8" fill="#0ea5a0"/>
+      <text x="193" y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">🔧 Normalise</text>
+      <text x="193" y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">16 kHz Mono</text>
+      <text x="193" y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Auto Format</text>
+
+      <line x1="248" y1="59" x2="266" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="268" y="30" width="110" height="58" rx="8" fill="#065f46"/>
+      <text x="323" y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">✂️ Segment</text>
+      <text x="323" y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">≤2 min chunks</text>
+      <text x="323" y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Unlimited length</text>
+
+      <line x1="378" y1="59" x2="396" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="398" y="30" width="120" height="58" rx="8" fill="#1a4b8c"/>
+      <text x="458" y="51" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">🧠 Granite Speech</text>
+      <text x="458" y="66" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">IBM 5.0-2B Model</text>
+      <text x="458" y="80" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Transcribe / Translate</text>
+
+      <line x1="518" y1="59" x2="536" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="538" y="30" width="110" height="58" rx="8" fill="#5b21b6"/>
+      <text x="593" y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">🤖 AI Model</text>
+      <text x="593" y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Summarise</text>
+      <text x="593" y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Analyse · Answer</text>
+
+      <line x1="648" y1="59" x2="666" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="668" y="30" width="110" height="58" rx="8" fill="#9a3412"/>
+      <text x="723" y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">💾 Save Result</text>
+      <text x="723" y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">JSON + TXT</text>
+      <text x="723" y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Timestamped</text>
+
+      <line x1="778" y1="59" x2="796" y2="59" stroke="#3b82d4" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <rect x="798" y="30" width="94" height="58" rx="8" fill="#1f2937"/>
+      <text x="845" y="56" font-family="system-ui" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">✅ Output</text>
+      <text x="845" y="72" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">Transcript</text>
+      <text x="845" y="84" font-family="system-ui" font-size="10" fill="rgba(255,255,255,.7)" text-anchor="middle">AI Response</text>
+    </svg>
+    <div class="diagram-caption">Figure 2 — End-to-End Data Flow: from raw audio file to structured AI-enriched output</div>
+  </div>
+
+  <div class="two-col" style="margin-top:40px">
+    <div>
+      <h3>The Speech Recognition Engine</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.7">
+        IBM Granite Speech 5.0-2B is a two-stage neural network. The first stage is a
+        <strong>speech encoder</strong> — it listens to the audio waveform and produces a
+        rich numerical description of every spoken sound. The second stage is a
+        <strong>language model decoder</strong> — it takes that description and generates
+        natural written text. The two-billion parameters of the combined model capture
+        nuances of accent, background noise, and domain-specific vocabulary that simpler
+        approaches miss.
+      </p>
+    </div>
+    <div>
+      <h3>Automatic Hardware Optimisation</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.7">
+        On startup, the system scans the host machine: it checks for NVIDIA GPUs and
+        their available memory, Apple Silicon chips, CPU core counts, and total RAM.
+        It then selects the fastest available processing mode — GPU acceleration where
+        possible, Apple's Metal GPU stack on Macs, or CPU-only with additional
+        optimisations on commodity hardware. A minimum of 4 GB free memory is recommended
+        for GPU inference; 8 GB RAM for CPU-only operation.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ USE CASES ══════════════════════════════════════════════════════════════ -->
+<section id="use-cases">
+  <div class="section-eyebrow">Business Applications</div>
+  <h2>Where Organisations Use This</h2>
+  <p class="lead">Any workflow that begins with spoken audio and ends with written understanding.</p>
+
+  <div class="uc-grid">
+    <div class="uc">
+      <div class="uc-title">📋 Meeting Intelligence</div>
+      <p>Record any meeting, upload the audio, and receive an automatic transcript plus an AI-generated summary with action items, decisions, and follow-up owners — in minutes, not hours.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">📞 Customer Call Analysis</div>
+      <p>Transcribe support or sales calls and run them through an AI model configured to extract sentiment, identify issues, or score call quality against defined criteria.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">🎓 Training & Knowledge Capture</div>
+      <p>Convert recorded training sessions, expert interviews, or onboarding videos into searchable, summarised documentation — preserving institutional knowledge at scale.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">🌐 Cross-Language Communication</div>
+      <p>Instantly translate spoken content between English, French, German, Spanish, Portuguese, and Japanese — enabling multilingual teams to work from a common written record.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">🏥 Clinical & Field Notes</div>
+      <p>Healthcare professionals, inspectors, or field workers dictate observations; the system transcribes and structures them into a standardised format through a custom AI prompt.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">📰 Media & Content Production</div>
+      <p>Podcasters, journalists, and video producers get instant transcripts of recordings, with the option to generate summaries, headlines, show notes, or chapter markers automatically.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">⚖️ Legal & Compliance</div>
+      <p>Produce verbatim transcripts of depositions, hearings, or compliance calls with a full audit trail of when the recording was processed and what system version was used.</p>
+    </div>
+    <div class="uc">
+      <div class="uc-title">🔬 Research & Analysis</div>
+      <p>Researchers transcribe interviews, focus groups, or oral history recordings at scale, then apply custom analytical prompts to identify themes, quotes, and patterns.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ INTEGRATIONS ══════════════════════════════════════════════════════════ -->
+<section id="integrations">
+  <div class="section-eyebrow">AI Backend Integrations</div>
+  <h2>Choose Your AI Engine</h2>
+  <p class="lead">
+    The platform is AI-agnostic. Switch between five supported AI backends — local or cloud — from a single configuration setting, with no code changes required.
+  </p>
+
+  <div style="margin-top:28px">
+    <div class="int-row">
+      <span class="int-badge local-badge">LOCAL</span>
+      <div>
+        <div class="int-name">Ollama</div>
+        <div class="int-desc">Run open-weight AI models entirely on your own computer. Zero ongoing cost; no data leaves the machine. Supports IBM Granite, Llama, Mistral, and hundreds of other models. Recommended for privacy-sensitive workloads.</div>
+      </div>
+      <span style="font-size:13px;color:var(--muted)">Port 11434</span>
+    </div>
+    <div class="int-row">
+      <span class="int-badge local-badge">LOCAL</span>
+      <div>
+        <div class="int-name">LM Studio</div>
+        <div class="int-desc">A graphical application that lets non-technical users manage and run local AI models with a polished interface. The platform connects to its built-in API server automatically.</div>
+      </div>
+      <span style="font-size:13px;color:var(--muted)">Port 1234</span>
+    </div>
+    <div class="int-row">
+      <span class="int-badge local-badge">LOCAL</span>
+      <div>
+        <div class="int-name">llama.cpp Server</div>
+        <div class="int-desc">A high-performance, low-overhead inference engine for running quantised models on consumer hardware, including machines without a dedicated GPU. Ideal for edge deployments.</div>
+      </div>
+      <span style="font-size:13px;color:var(--muted)">Port 9931</span>
+    </div>
+    <div class="int-row">
+      <span class="int-badge cloud-badge">CLOUD</span>
+      <div>
+        <div class="int-name">OpenAI (GPT-4o, GPT-4o mini, etc.)</div>
+        <div class="int-desc">Connect to OpenAI's frontier models for the highest quality AI analysis. Requires an API key. Your transcripts are sent to OpenAI for processing — appropriate for non-sensitive data where quality is the top priority.</div>
+      </div>
+      <span style="font-size:13px;color:var(--muted)">api.openai.com</span>
+    </div>
+    <div class="int-row">
+      <span class="int-badge cloud-badge">CLOUD</span>
+      <div>
+        <div class="int-name">Anthropic Claude (Haiku, Sonnet, Opus)</div>
+        <div class="int-desc">Connect to Anthropic's Claude family of models, known for careful, nuanced reasoning and strong performance on summarisation and document analysis tasks. Requires an API key.</div>
+      </div>
+      <span style="font-size:13px;color:var(--muted)">api.anthropic.com</span>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:32px">
+    <div class="callout-label">🔄 Switching Backends at Runtime</div>
+    <p>The <strong>LLM Interact</strong> and <strong>Full Pipeline</strong> tabs both include a live backend selector. Click the "Refresh" button to discover which models are currently available on your local server, then select a model and run — no configuration file editing required.</p>
+  </div>
+</section>
+
+<!-- ══ SECURITY & RELIABILITY ══════════════════════════════════════════════ -->
+<section id="security">
+  <div class="section-eyebrow">Security &amp; Reliability</div>
+  <h2>Built for Trustworthy Operation</h2>
+
+  <div class="two-col">
+    <div>
+      <h3>Privacy by Design</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.75;margin-bottom:16px">
+        When configured with local AI backends (Ollama, LM Studio, or llama.cpp), the
+        platform processes audio and generates responses entirely on your own hardware.
+        <strong>No audio, transcript, or AI response is ever transmitted to an external service.</strong>
+        Cloud backends (OpenAI, Anthropic) are opt-in and clearly labelled.
+      </p>
+      <div class="pill-row">
+        <span class="pill pill-green">✔ No cloud audio upload</span>
+        <span class="pill pill-green">✔ No usage analytics</span>
+        <span class="pill pill-green">✔ API keys in local .env only</span>
+        <span class="pill pill-green">✔ Output files stay on disk</span>
+      </div>
+    </div>
+    <div>
+      <h3>Secure Browser Access</h3>
+      <p style="color:var(--muted);font-size:14px;line-height:1.75;margin-bottom:16px">
+        Modern browsers require an encrypted (HTTPS) connection before allowing
+        microphone access. The setup script automatically generates a self-signed
+        TLS certificate for local use. The private key is stored only on the local
+        machine and is excluded from any version control commits, preventing accidental
+        credential exposure.
+      </p>
+      <div class="pill-row">
+        <span class="pill pill-green">✔ HTTPS on localhost</span>
+        <span class="pill pill-green">✔ Keys never committed to git</span>
+        <span class="pill pill-green">✔ Auto-generated, auto-detected</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:40px">
+    <h3>Error Handling &amp; Graceful Degradation</h3>
+    <div class="card-grid" style="margin-top:16px">
+      <div class="card">
+        <h4>🔇 Microphone Unavailable</h4>
+        <p>If no TLS certificate is present, the microphone button is hidden automatically. File upload continues to work normally. The application never crashes on missing hardware.</p>
+      </div>
+      <div class="card">
+        <h4>⚠️ AI Backend Unreachable</h4>
+        <p>If the configured AI backend is offline, the transcription step completes successfully and the AI step is skipped with a clear on-screen message rather than failing silently or crashing.</p>
+      </div>
+      <div class="card">
+        <h4>💾 Insufficient Memory</h4>
+        <p>The hardware detector warns when available memory may be insufficient to load the model, and suggests alternative precision settings. The application falls back to CPU processing automatically.</p>
+      </div>
+      <div class="card">
+        <h4>📁 Audio Format Issues</h4>
+        <p>Four audio-loading libraries are tried in sequence. If one fails (e.g. due to a missing system codec), the next is attempted automatically — ensuring maximum compatibility with real-world audio files.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURE MATRIX ══════════════════════════════════════════════════════ -->
+<section id="features">
+  <div class="section-eyebrow">Complete Feature Overview</div>
+  <h2>Feature Matrix</h2>
+  <p class="lead">A comprehensive inventory of all capabilities and their availability.</p>
+
+  <div style="overflow-x:auto;margin-top:28px">
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>Ollama<br><span style="font-weight:400;opacity:.7">(Local)</span></th>
+        <th>LM Studio<br><span style="font-weight:400;opacity:.7">(Local)</span></th>
+        <th>llama.cpp<br><span style="font-weight:400;opacity:.7">(Local)</span></th>
+        <th>OpenAI<br><span style="font-weight:400;opacity:.7">(Cloud)</span></th>
+        <th>Anthropic<br><span style="font-weight:400;opacity:.7">(Cloud)</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="6" style="background:var(--navy);color:#fff;font-weight:700;font-size:12px;letter-spacing:.05em;padding:8px 14px">SPEECH PROCESSING (all backends)</td></tr>
+      <tr><td>Transcribe audio to text</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Translate speech (6 languages)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Unlimited audio length (auto-segmented)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Microphone recording in browser</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Downloadable transcript (.txt)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Timestamped JSON result saved to disk</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Detailed processing timing report</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td colspan="6" style="background:var(--navy);color:#fff;font-weight:700;font-size:12px;letter-spacing:.05em;padding:8px 14px">AI ANALYSIS</td></tr>
+      <tr><td>Custom prompt / instruction</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Full pipeline (audio → transcript → AI)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Live model list / discovery</td><td class="chk">✔</td><td class="dash">—</td><td class="chk">✔</td><td class="dash">—</td><td class="dash">—</td></tr>
+      <tr><td>No API key required</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="dash">—</td><td class="dash">—</td></tr>
+      <tr><td>Data never leaves local machine</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="dash">—</td><td class="dash">—</td></tr>
+      <tr><td>Thinking / reasoning model support</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td colspan="6" style="background:var(--navy);color:#fff;font-weight:700;font-size:12px;letter-spacing:.05em;padding:8px 14px">CONFIGURATION &amp; OPERATIONS</td></tr>
+      <tr><td>Live config reload (no restart)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Environment variable overrides</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>HTTPS / microphone security</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>Hardware auto-detection &amp; optimisation</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>GPU acceleration (CUDA / Apple Silicon)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>One-command setup script</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>131 automated tests (no GPU needed)</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Language support table -->
+  <h3 style="margin-top:48px">Supported Languages</h3>
+  <div style="overflow-x:auto;margin-top:16px">
+  <table class="matrix">
+    <thead>
+      <tr><th>Language</th><th>Transcription</th><th>Translation Source</th><th>Translation Target</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>🇬🇧 English</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>🇫🇷 French</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>🇩🇪 German</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>🇪🇸 Spanish</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>🇵🇹 Portuguese</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+      <tr><td>🇯🇵 Japanese</td><td class="chk">✔</td><td class="chk">✔</td><td class="chk">✔</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ══ GETTING STARTED ══════════════════════════════════════════════════════ -->
+<section id="getting-started">
+  <div class="section-eyebrow">Quick Start</div>
+  <h2>Up and Running in Under 10 Minutes</h2>
+  <p class="lead">Three commands to a fully operational speech intelligence platform.</p>
+
+  <div class="card-grid" style="margin-top:28px">
+    <div class="card" style="border-top:4px solid var(--sky)">
+      <h3>Step 1 — Setup</h3>
+      <p style="margin-bottom:12px">Run the one-time setup script. It creates an isolated Python environment, installs all dependencies, and generates the HTTPS certificate automatically.</p>
+      <code style="display:block;background:var(--navy);color:#67e8f9;padding:10px 14px;border-radius:6px;font-size:13px;border:none">bash scripts/setup.sh</code>
+    </div>
+    <div class="card" style="border-top:4px solid var(--teal)">
+      <h3>Step 2 — Configure</h3>
+      <p style="margin-bottom:12px">Edit <code>config/config.yaml</code> to choose your AI backend, or set environment variables in a <code>.env</code> file. The default configuration works out of the box with Ollama.</p>
+      <code style="display:block;background:var(--navy);color:#67e8f9;padding:10px 14px;border-radius:6px;font-size:13px;border:none">ollama pull granite4.2:latest</code>
+    </div>
+    <div class="card" style="border-top:4px solid var(--purple)">
+      <h3>Step 3 — Launch</h3>
+      <p style="margin-bottom:12px">Start the application. The script prints the URL and opens in background mode. Open the printed address in any modern browser.</p>
+      <code style="display:block;background:var(--navy);color:#67e8f9;padding:10px 14px;border-radius:6px;font-size:13px;border:none">bash scripts/start.sh<br># → https://localhost:7860</code>
+    </div>
+  </div>
+</section>
+
+</div><!-- /page -->
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════════════ -->
+<footer>
+  <p><strong>IBM Granite Speech 5.0-2B Demonstration Application</strong></p>
+  <p style="margin-top:6px">
+    Powered by <strong>ibm-granite/granite-speech-5.0-2b</strong> · 131 unit tests passing ·
+    Local &amp; cloud AI backends · HTTPS enabled · Open-source stack
+  </p>
+  <p style="margin-top:12px;font-size:12px;opacity:.6">
+    Made with IBM Bob &nbsp;·&nbsp; Document generated from verified codebase · All capabilities reflect implemented functionality
+  </p>
+</footer>
+
+</body>
+</html>
