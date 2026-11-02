@@ -44,6 +44,15 @@ if [ -f "$PIDFILE" ]; then
   rm -f "$PIDFILE"
 fi
 
+# ── Detect TLS cert ───────────────────────────────────────────────────────────
+CERT_FILE="${APP_SSL_CERTFILE:-$PROJECT_DIR/certs/cert.pem}"
+KEY_FILE="${APP_SSL_KEYFILE:-$PROJECT_DIR/certs/key.pem}"
+if [ -f "$CERT_FILE" ] && [ -f "$KEY_FILE" ]; then
+  SCHEME="https"
+else
+  SCHEME="http"
+fi
+
 # ── Start the app in background ───────────────────────────────────────────────
 echo "🚀  Starting Granite Speech demo …"
 nohup python "$PROJECT_DIR/app.py" >> "$LOGFILE" 2>&1 &
@@ -55,9 +64,19 @@ sleep 3
 if kill -0 "$APP_PID" 2>/dev/null; then
   echo "✅  Application started  (PID $APP_PID)"
   echo ""
-  echo "    ┌──────────────────────────────────────────────┐"
-  echo "    │  🌐  http://localhost:${APP_PORT}                    │"
-  echo "    └──────────────────────────────────────────────┘"
+  if [ "$SCHEME" = "https" ]; then
+    echo "    ┌──────────────────────────────────────────────────────────────┐"
+    echo "    │  🔒  https://localhost:${APP_PORT}  (microphone enabled)         │"
+    echo "    │                                                              │"
+    echo "    │  ⚠  First visit: click 'Advanced → Proceed to localhost'    │"
+    echo "    │     to accept the self-signed certificate.                   │"
+    echo "    └──────────────────────────────────────────────────────────────┘"
+  else
+    echo "    ┌──────────────────────────────────────────────┐"
+    echo "    │  🌐  http://localhost:${APP_PORT}                    │"
+    echo "    │  ⚠  No TLS cert — microphone unavailable     │"
+    echo "    └──────────────────────────────────────────────┘"
+  fi
   echo ""
   echo "    Logs → $LOGFILE"
   echo "    Stop → bash scripts/stop.sh"

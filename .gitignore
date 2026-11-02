@@ -71,3 +71,10 @@ node_modules/
 .vscode/settings.json
 *.swp
 *.swo
+
+# TLS certificates (private keys must never be committed)
+certs/key.pem
+certs/*.key
+
+certs/cert.pem
+certs/*.pem

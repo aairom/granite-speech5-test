@@ -492,5 +492,182 @@ class TestRefreshModelList(unittest.TestCase):
         self.assertIsInstance(status, str)
 
 
+# ── Regression: full_pipeline LLM-skip guard ──────────────────────────────────
+
+class TestFullPipelineLLMGuard(unittest.TestCase):
+    """
+    Regression test for the bug where transcript.startswith("") was always True,
+    causing full_pipeline to silently skip the LLM call every time.
+    """
+
+    @staticmethod
+    def _import():
+        return TestFetchOllamaModels._import()
+
+    def test_successful_transcript_calls_llm(self):
+        """
+        When ASR succeeds, full_pipeline must call llm_interact and return its reply.
+        Bug: startswith("") is always True → llm_interact was never reached.
+        """
+        app = self._import()
+
+        with (
+            patch.object(app, "transcribe_audio", return_value=("Hello world.", "asr_meta")),
+            patch.object(app, "llm_interact", return_value=("LLM answer.", "llm_meta")) as mock_llm,
+        ):
+            transcript, reply, meta = app.full_pipeline(
+                audio_file="/fake/audio.wav",
+                verbatim=False,
+                user_question="What was said?",
+                backend_override="default",
+                model_override="",
+            )
+
+        mock_llm.assert_called_once()
+        self.assertEqual(reply, "LLM answer.")
+        self.assertIn("LLM answer.", reply)
+
+    def test_error_transcript_skips_llm(self):
+        """
+        When ASR returns an error string (starts with ❌), llm_interact must NOT be called.
+        """
+        app = self._import()
+
+        with (
+            patch.object(app, "transcribe_audio", return_value=("❌ Audio load failed.", "err_meta")),
+            patch.object(app, "llm_interact") as mock_llm,
+        ):
+            transcript, reply, meta = app.full_pipeline(
+                audio_file=None,
+                verbatim=False,
+                user_question="Summarise",
+                backend_override="default",
+                model_override="",
+            )
+
+        mock_llm.assert_not_called()
+        self.assertEqual(reply, "")
+        self.assertEqual(transcript, "❌ Audio load failed.")
+
+    def test_empty_transcript_still_calls_llm(self):
+        """
+        An empty (but non-error) transcript should still reach the LLM — the guard
+        must NOT fire on empty strings (that was the original bug pattern).
+        """
+        app = self._import()
+
+        with (
+            patch.object(app, "transcribe_audio", return_value=("", "asr_meta")),
+            patch.object(app, "llm_interact", return_value=("nothing", "meta")) as mock_llm,
+        ):
+            app.full_pipeline(
+                audio_file="/fake/audio.wav",
+                verbatim=False,
+                user_question="Any question",
+                backend_override="default",
+                model_override="",
+            )
+
+        mock_llm.assert_called_once()
+
+
+# ── Regression: Audio input download button / transcript download helper ──────
+
+class TestPrepareTranscriptDownload(unittest.TestCase):
+    """
+    Tests for the _prepare_transcript_download helper.
+    Verifies the fix for the Gradio 'true' filename bug:
+    - Input Audio widgets no longer have a download button
+    - Transcript download uses a proper .txt file via DownloadButton
+    """
+
+    @staticmethod
+    def _import():
+        return TestFetchOllamaModels._import()
+
+    def test_empty_text_returns_hidden_update(self):
+        """Empty transcript hides the DownloadButton."""
+        app = self._import()
+        result = app._prepare_transcript_download("")
+        self.assertEqual(result.get("visible"), False)
+
+    def test_error_text_returns_hidden_update(self):
+        """Error transcript (starts with ❌) hides the DownloadButton."""
+        app = self._import()
+        result = app._prepare_transcript_download("❌ Audio load failed.")
+        self.assertEqual(result.get("visible"), False)
+
+    def test_valid_text_returns_visible_update_with_file(self):
+        """Non-empty transcript makes the DownloadButton visible with a .txt file."""
+        import os
+        app = self._import()
+        result = app._prepare_transcript_download("Hello world.")
+        self.assertTrue(result.get("visible"))
+        filepath = result.get("value")
+        self.assertIsNotNone(filepath)
+        self.assertTrue(filepath.endswith(".txt"), f"Expected .txt file, got {filepath}")
+        # File must exist and contain the transcript
+        self.assertTrue(os.path.exists(filepath))
+        with open(filepath, encoding="utf-8") as f:
+            content = f.read()
+        self.assertEqual(content, "Hello world.")
+        os.unlink(filepath)  # clean up
+
+    def test_filename_contains_timestamp(self):
+        """Download filename includes a timestamp prefix."""
+        import os, re
+        app = self._import()
+        result = app._prepare_transcript_download("Test transcript.")
+        filepath = result.get("value", "")
+        basename = os.path.basename(filepath)
+        # Expect pattern: transcript_YYYYMMDD_HHMMSS_<random>.txt
+        self.assertRegex(
+            basename,
+            r"transcript_\d{8}_\d{6}_.*\.txt",
+            f"Unexpected filename format: {basename}",
+        )
+        if os.path.exists(filepath):
+            os.unlink(filepath)
+
+    def test_audio_widget_has_no_download_button(self):
+        """
+        Regression: all three gr.Audio input widgets must NOT include 'download'
+        in their buttons list (that was triggering the 'true' filename bug).
+        Uses the real gradio package (not the test stub) to verify the config.
+        """
+        # Import real gradio directly — this test validates Gradio's own API,
+        # not the app module, so it must bypass the test stub.
+        import sys, importlib, importlib.util
+
+        # Temporarily pop the stub so importlib sees the real package.
+        stub = sys.modules.pop("gradio", None)
+        try:
+            real_gr = importlib.import_module("gradio")
+            real_Audio = real_gr.Audio
+        except Exception:
+            # Restore stub and skip if real gradio is not importable here
+            if stub is not None:
+                sys.modules["gradio"] = stub
+            self.skipTest("Real gradio not importable in this environment")
+            return
+        finally:
+            # Always restore the stub so other tests are unaffected
+            if stub is not None:
+                sys.modules["gradio"] = stub
+
+        a = real_Audio(
+            sources=["upload", "microphone"],
+            type="filepath",
+            label="Test",
+            buttons=["share"],
+        )
+        cfg = a.get_config()
+        self.assertNotIn("download", cfg.get("buttons", []),
+            "Audio input widget must not have a 'download' button — "
+            "it triggers the Gradio 6.x 'true' filename bug")
+        self.assertIn("share", cfg.get("buttons", []),
+            "Share button should still be present")
+
+
 if __name__ == "__main__":
     unittest.main()

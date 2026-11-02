@@ -106,6 +106,9 @@ class AppConfig:
     share: bool = False
     log_level: str = "INFO"
     output_dir: str = "output"
+    # TLS/HTTPS — enables browser microphone access on localhost
+    ssl_certfile: str = ""   # e.g. "certs/cert.pem"
+    ssl_keyfile: str = ""    # e.g. "certs/key.pem"
 
 
 @dataclass
@@ -324,6 +327,8 @@ class ConfigManager:
             cfg.app.share = _as_bool(ap.get("share"), default=cfg.app.share)
             cfg.app.log_level = ap.get("log_level", cfg.app.log_level)
             cfg.app.output_dir = ap.get("output_dir", cfg.app.output_dir) or "output"
+            cfg.app.ssl_certfile = ap.get("ssl_certfile", cfg.app.ssl_certfile) or ""
+            cfg.app.ssl_keyfile = ap.get("ssl_keyfile", cfg.app.ssl_keyfile) or ""
 
         return cfg
 
@@ -344,6 +349,8 @@ class ConfigManager:
             "SPEECH_PROFILE": None,
             "APP_PORT": ("app", "server_port"),
             "APP_LOG_LEVEL": ("app", "log_level"),
+            "APP_SSL_CERTFILE": ("app", "ssl_certfile"),
+            "APP_SSL_KEYFILE": ("app", "ssl_keyfile"),
             "LLM_OLLAMA_MODEL": None,   # handled below
             "LLM_LMSTUDIO_MODEL": None,
             "LLM_LLAMACPP_MODEL": None,

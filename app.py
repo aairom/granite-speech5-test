@@ -344,7 +344,8 @@ def full_pipeline(
     Returns (transcript, llm_reply, combined_metadata).
     """
     transcript, asr_meta = transcribe_audio(audio_file, verbatim)
-    if transcript.startswith(""):
+    # Guard: if ASR returned an error message (prefixed with ❌), skip the LLM step.
+    if transcript.startswith("❌"):
         return transcript, "", asr_meta
 
     llm_reply, llm_meta = llm_interact(transcript, user_question, backend_override, model_override)
@@ -404,6 +405,40 @@ def get_hardware_info() -> str:
         return f"Error: {exc}"
 
 
+# ── Transcript download helper ────────────────────────────────────────────────
+
+def _prepare_transcript_download(text: str) -> gr.update:
+    """
+    Write transcript text to a temp .txt file and return a gr.update that
+    makes the DownloadButton visible and points it at that file.
+
+    Called via transcript_out.change() — fires whenever the transcript
+    Textbox content changes (i.e. after a successful transcription).
+
+    Returns gr.update(visible=True, value=path) when text is non-empty,
+    or gr.update(visible=False) to hide the button when there is nothing
+    to download.
+    """
+    import tempfile
+
+    if not text or text.startswith("❌"):
+        return gr.update(visible=False)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Write to a NamedTemporaryFile that Gradio can serve for download.
+    # delete=False so the file persists until Gradio cleans its cache.
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=".txt",
+        prefix=f"transcript_{ts}_",
+        delete=False,
+        encoding="utf-8",
+    )
+    tmp.write(text)
+    tmp.close()
+    return gr.update(visible=True, value=tmp.name)
+
+
 # ── Build Gradio UI ───────────────────────────────────────────────────────────
 
 def build_ui() -> gr.Blocks:
@@ -434,6 +469,10 @@ with configurable LLM backends for downstream processing.
                         sources=["upload", "microphone"],
                         type="filepath",
                         label="Audio input (mono 16 kHz recommended; longer files split automatically)",
+                        # Remove the download button from the input widget — downloading
+                        # audio you just uploaded is redundant and triggers a Gradio 6.x
+                        # bug that shows "true" as the save-dialog filename.
+                        buttons=["share"],
                     )
                     verbatim_cb = gr.Checkbox(
                         label="Verbatim mode (no punctuation normalisation)",
@@ -445,10 +484,22 @@ with configurable LLM backends for downstream processing.
                         label="Transcript", lines=10, interactive=True
                     )
                     meta_out_1 = gr.Textbox(label="Metadata", lines=2, interactive=False)
+                    # Proper transcript download — downloads the text as a .txt file
+                    btn_dl_transcript = gr.DownloadButton(
+                        label="⬇ Download transcript",
+                        visible=False,
+                        variant="secondary",
+                        size="sm",
+                    )
             btn_transcribe.click(
                 transcribe_audio,
                 inputs=[audio_input_1, verbatim_cb],
                 outputs=[transcript_out, meta_out_1],
+            )
+            transcript_out.change(
+                _prepare_transcript_download,
+                inputs=[transcript_out],
+                outputs=[btn_dl_transcript],
             )
 
         # ── Tab 2: Translate ──────────────────────────────────────────────────
@@ -463,6 +514,7 @@ with configurable LLM backends for downstream processing.
                         sources=["upload", "microphone"],
                         type="filepath",
                         label="Audio input",
+                        buttons=["share"],  # no download — avoids "true" filename bug
                     )
                     src_lang = gr.Dropdown(
                         choices=lang_choices, value="en", label="Source language"
@@ -547,6 +599,7 @@ with configurable LLM backends for downstream processing.
                         sources=["upload", "microphone"],
                         type="filepath",
                         label="Audio input",
+                        buttons=["share"],  # no download — avoids "true" filename bug
                     )
                     verbatim_cb_4 = gr.Checkbox(label="Verbatim ASR mode", value=False)
                     question_in_4 = gr.Textbox(
@@ -648,10 +701,42 @@ def main() -> None:
     logger.info("\n%s", hw.summary_str())
 
     demo = build_ui()
+
+    # Build SSL kwargs — when cert/key are present the app serves HTTPS,
+    # which is required for the browser microphone API to work on localhost.
+    ssl_kwargs: dict = {}
+    root = Path(__file__).parent
+    certfile = cfg.app.ssl_certfile or str(root / "certs" / "cert.pem")
+    keyfile = cfg.app.ssl_keyfile or str(root / "certs" / "key.pem")
+    if Path(certfile).exists() and Path(keyfile).exists():
+        ssl_kwargs = {
+            "ssl_certfile": certfile,
+            "ssl_keyfile": keyfile,
+            # ssl_verify=False tells Gradio's internal httpx health-check to
+            # skip cert validation for its own loopback call — required when
+            # using a self-signed certificate, otherwise Gradio crashes on
+            # startup with CERTIFICATE_VERIFY_FAILED before the browser even
+            # connects.
+            "ssl_verify": False,
+        }
+        scheme = "https"
+        logger.info("TLS enabled — serving over HTTPS (microphone will work in browser)")
+    else:
+        scheme = "http"
+        logger.warning(
+            "No TLS cert found at %s — microphone requires HTTPS.\n"
+            "  Run: openssl req -x509 -newkey rsa:2048 -nodes "
+            "-keyout certs/key.pem -out certs/cert.pem -days 3650 "
+            '-subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"',
+            certfile,
+        )
+
+    logger.info("App URL: %s://localhost:%d", scheme, cfg.app.server_port)
     demo.launch(
         server_port=cfg.app.server_port,
         share=cfg.app.share,
         server_name="0.0.0.0",
+        **ssl_kwargs,
     )
 
 

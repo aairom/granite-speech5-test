@@ -77,12 +77,22 @@ The app starts in the background and prints:
 ```
 ✅  Application started  (PID 12345)
 
-    ┌──────────────────────────────────────────────┐
-    │  🌐  http://localhost:7860                    │
-    └──────────────────────────────────────────────┘
+    ┌──────────────────────────────────────────────────────────────┐
+    │  🔒  https://localhost:7860  (microphone enabled)         │
+    └──────────────────────────────────────────────────────────────┘
 ```
 
-Open **http://localhost:7860** in your browser.
+Open **https://localhost:7860** in your browser.
+
+> ⚠️ **Self-signed certificate warning** — on the first visit your browser will show
+> a security warning ("Your connection is not private").
+> Click **Advanced → Proceed to localhost (unsafe)** to continue.
+> This is safe — the cert is only used to enable the microphone API locally.
+> The warning appears only once; subsequent visits go straight to the app.
+
+> If `setup.sh` could not generate the cert (openssl not found), the app falls
+> back to HTTP and the microphone button will show "No microphone…".
+> Install openssl and re-run `bash scripts/setup.sh` to fix this.
 
 ---
 
@@ -159,6 +169,25 @@ uv pip install 'torchaudio>=2.0.0,<2.9'
 ```
 
 > ⚠️ **A page refresh is NOT sufficient.** Python caches all imports at process startup. Newly installed packages are invisible to a running process — `sys.modules` is read once at startup and does not change when a Gradio page is refreshed. You must **fully restart the application** (`bash scripts/stop.sh && bash scripts/start.sh`) after installing a new package.
+
+### "cert.pem blocked by IBM Vault Radar on git push"
+
+IBM Vault Radar flags **any** X.509 certificate file (even public ones) as a medium-severity finding.
+`certs/cert.pem` and `certs/key.pem` are excluded from git via `.gitignore` — they must never be committed.
+
+If Vault Radar still blocks you, the cert was likely staged before `.gitignore` was updated.
+Remove it from the index:
+
+```bash
+git rm --cached certs/cert.pem certs/key.pem 2>/dev/null || true
+git commit -m "chore: remove TLS certs from git tracking"
+```
+
+Regenerate certs locally at any time with:
+
+```bash
+bash scripts/setup.sh   # idempotent — skips if certs already exist
+```
 
 ---
 
