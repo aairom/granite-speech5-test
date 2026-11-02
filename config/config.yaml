@@ -58,9 +58,11 @@ llm:
   backend: "ollama"
 
   # Ollama (local, default)
+  # Use the model name exactly as shown by: ollama list
+  # Current machine has: granite4.2:latest, llama3.2:latest
   ollama:
     base_url: "http://localhost:11434/v1"
-    model: "granite3.3:8b"
+    model: "granite4.2:latest"
 
   # LM Studio (local, OpenAI-compatible)
   lmstudio:
@@ -84,6 +86,10 @@ llm:
 
   # LLM generation parameters (shared across backends)
   temperature: 0.3
+  # NOTE: thinking/reasoning models (e.g. granite4.2, qwen3) generate a
+  # <think>...</think> internal chain-of-thought block BEFORE the answer.
+  # If max_tokens is too small the model runs out of tokens during the think
+  # phase and content is empty.  Keep at ≥ 1024 for thinking models.
   max_tokens: 1024
 
   # System prompt applied to every LLM call

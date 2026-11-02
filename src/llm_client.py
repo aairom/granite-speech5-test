@@ -157,8 +157,9 @@ class OpenAICompatibleClient(LLMClient):
             }
         ).encode()
 
+        url = f"{self.base_url}/chat/completions"
         request = urllib.request.Request(
-            f"{self.base_url}/chat/completions",
+            url,
             data=payload,
             headers={
                 "Content-Type": "application/json",
@@ -167,10 +168,55 @@ class OpenAICompatibleClient(LLMClient):
             method="POST",
         )
 
-        with urllib.request.urlopen(request, timeout=120) as resp:
-            body = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(request, timeout=120) as resp:
+                body = json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            # Produce a diagnostic message that names the likely cause.
+            if exc.code == 404:
+                raise RuntimeError(
+                    f"HTTP 404 from {url!r}. "
+                    "Most likely the model name is wrong or not pulled yet.\n"
+                    f"  Model requested: {req.model!r}\n"
+                    "  Fix options:\n"
+                    "    1. Check available models:  ollama list\n"
+                    f"    2. Pull the model:          ollama pull {req.model}\n"
+                    "    3. Update the model name in config/config.yaml "
+                    "[llm.ollama.model] or set LLM_OLLAMA_MODEL=<name> in .env"
+                ) from exc
+            if exc.code == 401:
+                raise RuntimeError(
+                    f"HTTP 401 Unauthorized from {url!r}. "
+                    "Check your API key configuration."
+                ) from exc
+            # Re-raise with the response body for other status codes
+            try:
+                body_text = exc.read().decode(errors="replace")
+            except Exception:
+                body_text = str(exc)
+            raise RuntimeError(
+                f"HTTP {exc.code} from {url!r}: {body_text}"
+            ) from exc
 
-        choice = body["choices"][0]["message"]["content"]
+        msg = body["choices"][0]["message"]
+        # `content` holds the final answer.  For thinking/reasoning models
+        # (e.g. granite4.2 with <think>…</think> blocks) the answer appears in
+        # `content` after the reasoning concludes.  If `content` is empty it
+        # almost always means max_tokens was too low to complete the think phase —
+        # increase max_tokens in config.yaml [llm.max_tokens].
+        choice = msg.get("content") or ""
+        if not choice.strip() and msg.get("reasoning"):
+            # Surface the reasoning as a fallback so the user sees something
+            # useful rather than a blank reply, and log a warning.
+            logger.warning(
+                "Response content is empty (finish_reason=%r). "
+                "The model may be a thinking model that ran out of tokens. "
+                "Increase llm.max_tokens in config/config.yaml (current: %d). "
+                "Falling back to reasoning field.",
+                body["choices"][0].get("finish_reason"),
+                req.max_tokens,
+            )
+            choice = f"[Reasoning only — increase max_tokens]\n{msg['reasoning']}"
         usage = body.get("usage", {})
         return LLMResponse(
             text=choice.strip(),

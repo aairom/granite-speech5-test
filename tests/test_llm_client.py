@@ -222,5 +222,275 @@ class TestHealthCheck(unittest.TestCase):
         self.assertFalse(result)
 
 
+# ── Tests for HTTP error handling ─────────────────────────────────────────────
+
+import urllib.error
+
+class TestHTTPErrorHandling(unittest.TestCase):
+    """Verify that HTTP error codes produce clear, actionable RuntimeError messages."""
+
+    def _make_http_error(self, code: int, body: str = "") -> urllib.error.HTTPError:
+        """Build a fake HTTPError with a readable body."""
+        from io import BytesIO
+        err = urllib.error.HTTPError(
+            url="http://localhost:11434/v1/chat/completions",
+            code=code,
+            msg=f"HTTP Error {code}",
+            hdrs=MagicMock(),
+            fp=BytesIO(body.encode()),
+        )
+        return err
+
+    def test_404_raises_runtime_with_model_name(self):
+        """HTTP 404 must produce a RuntimeError mentioning the model name."""
+        client = OllamaClient(model="granite3.3:8b")
+        err = self._make_http_error(404)
+        with patch("src.llm_client.urllib.request.urlopen", side_effect=err):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": "hi"}])
+        msg = str(ctx.exception)
+        self.assertIn("404", msg)
+        self.assertIn("granite3.3:8b", msg)
+        self.assertIn("ollama list", msg)
+
+    def test_404_mentions_pull_command(self):
+        """The 404 error message should include the pull command."""
+        client = OllamaClient(model="missing-model:7b")
+        err = self._make_http_error(404)
+        with patch("src.llm_client.urllib.request.urlopen", side_effect=err):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": "hi"}])
+        msg = str(ctx.exception)
+        self.assertIn("ollama pull missing-model:7b", msg)
+
+    def test_401_raises_runtime_with_auth_hint(self):
+        """HTTP 401 must produce a RuntimeError mentioning API key."""
+        client = OllamaClient(model="test-model")
+        err = self._make_http_error(401)
+        with patch("src.llm_client.urllib.request.urlopen", side_effect=err):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": "hi"}])
+        msg = str(ctx.exception)
+        self.assertIn("401", msg)
+        self.assertIn("API key", msg)
+
+    def test_500_raises_runtime_with_status_code(self):
+        """HTTP 5xx must propagate as RuntimeError with the status code."""
+        client = OllamaClient(model="test-model")
+        err = self._make_http_error(500, body='{"error": "internal"}')
+        with patch("src.llm_client.urllib.request.urlopen", side_effect=err):
+            with self.assertRaises(RuntimeError) as ctx:
+                client.chat([{"role": "user", "content": "hi"}])
+        msg = str(ctx.exception)
+        self.assertIn("500", msg)
+
+    def test_regression_granite33_default_replaced(self):
+        """Regression: default Ollama model must NOT be 'granite3.3:8b' (doesn't exist)."""
+        from src.config_manager import LLMConfig
+        cfg = LLMConfig()
+        self.assertNotEqual(cfg.ollama.model, "granite3.3:8b",
+            "granite3.3:8b is not available in Ollama — default must be updated")
+
+
+# ── Tests for app.py model-discovery helpers ──────────────────────────────────
+
+import urllib.request as _urllib_request
+
+
+class TestFetchOllamaModels(unittest.TestCase):
+    """Unit tests for app.fetch_ollama_models()."""
+
+    # Import lazily so missing Gradio doesn't prevent collection
+    @staticmethod
+    def _import():
+        import importlib
+        import sys
+        # Stub out gradio so app.py can be imported without the real package
+        if "gradio" not in sys.modules:
+            import types
+            gradio_stub = types.ModuleType("gradio")
+
+            class _Stub:
+                def __init__(self, *a, **kw): pass
+                def __call__(self, *a, **kw): return self
+                def __enter__(self): return self
+                def __exit__(self, *a): pass
+
+            for attr in [
+                "Blocks", "Tab", "Row", "Column", "Markdown",
+                "Textbox", "Audio", "Checkbox", "Dropdown", "Button", "Code",
+            ]:
+                setattr(gradio_stub, attr, _Stub)
+            gradio_stub.update = lambda **kw: kw
+            sys.modules["gradio"] = gradio_stub
+
+        spec = importlib.util.spec_from_file_location(
+            "app_module",
+            str(Path(__file__).parent.parent / "app.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def _make_resp(self, body: bytes, status: int = 200):
+        """Build a fake urllib response context manager."""
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        return mock_resp
+
+    def test_returns_model_names_on_success(self):
+        """fetch_ollama_models returns list of model name strings from /api/tags."""
+        app = self._import()
+        payload = json.dumps({
+            "models": [
+                {"name": "granite4.2:latest"},
+                {"name": "llama3.2:latest"},
+            ]
+        }).encode()
+        fake_resp = self._make_resp(payload)
+        with patch("urllib.request.urlopen", return_value=fake_resp):
+            result = app.fetch_ollama_models("http://localhost:11434")
+        self.assertEqual(result, ["granite4.2:latest", "llama3.2:latest"])
+
+    def test_returns_empty_list_on_connection_error(self):
+        """fetch_ollama_models returns [] when Ollama is unreachable."""
+        app = self._import()
+        with patch("urllib.request.urlopen", side_effect=OSError("refused")):
+            result = app.fetch_ollama_models("http://localhost:11434")
+        self.assertEqual(result, [])
+
+    def test_strips_v1_suffix_from_base_url(self):
+        """URL construction removes trailing /v1 before appending /api/tags."""
+        app = self._import()
+        called_urls = []
+
+        def fake_urlopen(req, timeout=4):
+            called_urls.append(req.full_url)
+            raise OSError("stop")
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            app.fetch_ollama_models("http://localhost:11434/v1")
+
+        self.assertTrue(
+            called_urls[0].endswith("/api/tags"),
+            f"Expected URL ending in /api/tags, got {called_urls[0]}",
+        )
+        self.assertNotIn("/v1/api/tags", called_urls[0])
+
+    def test_returns_empty_list_on_malformed_json(self):
+        """fetch_ollama_models returns [] when response body is not valid JSON."""
+        app = self._import()
+        fake_resp = self._make_resp(b"not-json")
+        with patch("urllib.request.urlopen", return_value=fake_resp):
+            result = app.fetch_ollama_models()
+        self.assertEqual(result, [])
+
+
+class TestFetchLlamaCppModels(unittest.TestCase):
+    """Unit tests for app.fetch_llamacpp_models()."""
+
+    @staticmethod
+    def _import():
+        return TestFetchOllamaModels._import()
+
+    def _make_resp(self, body: bytes):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        return mock_resp
+
+    def test_returns_model_ids_on_success(self):
+        """fetch_llamacpp_models returns id list from /v1/models."""
+        app = self._import()
+        payload = json.dumps({
+            "data": [
+                {"id": "llama-3.2-3b"},
+                {"id": "granite-3b-code"},
+            ]
+        }).encode()
+        fake_resp = self._make_resp(payload)
+        with patch("urllib.request.urlopen", return_value=fake_resp):
+            result = app.fetch_llamacpp_models("http://localhost:9931/v1")
+        self.assertEqual(result, ["llama-3.2-3b", "granite-3b-code"])
+
+    def test_returns_empty_list_on_connection_error(self):
+        """fetch_llamacpp_models returns [] when server is down."""
+        app = self._import()
+        with patch("urllib.request.urlopen", side_effect=OSError("refused")):
+            result = app.fetch_llamacpp_models("http://localhost:9931/v1")
+        self.assertEqual(result, [])
+
+    def test_appends_models_path(self):
+        """URL construction appends /models to the provided base_url."""
+        app = self._import()
+        called_urls = []
+
+        def fake_urlopen(req, timeout=4):
+            called_urls.append(req.full_url)
+            raise OSError("stop")
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            app.fetch_llamacpp_models("http://localhost:9931/v1")
+
+        self.assertTrue(
+            called_urls[0].endswith("/v1/models"),
+            f"Expected URL ending in /v1/models, got {called_urls[0]}",
+        )
+
+
+class TestRefreshModelList(unittest.TestCase):
+    """Unit tests for app.refresh_model_list()."""
+
+    @staticmethod
+    def _import():
+        return TestFetchOllamaModels._import()
+
+    def test_ollama_found_returns_update_and_ok_status(self):
+        """refresh_model_list for ollama returns gr.update with choices and ✅ message."""
+        app = self._import()
+        with patch.object(app, "fetch_ollama_models", return_value=["granite4.2:latest", "llama3.2:latest"]):
+            update, status = app.refresh_model_list("ollama")
+        self.assertIn("granite4.2:latest", update["choices"])
+        self.assertTrue(status.startswith("✅"))
+
+    def test_ollama_unreachable_returns_warning(self):
+        """refresh_model_list returns a warning string when Ollama is unreachable."""
+        app = self._import()
+        with patch.object(app, "fetch_ollama_models", return_value=[]):
+            update, status = app.refresh_model_list("ollama")
+        self.assertIn("⚠️", status)
+
+    def test_llamacpp_found_returns_update(self):
+        """refresh_model_list for llamacpp returns gr.update with choices."""
+        app = self._import()
+        with patch.object(app, "fetch_llamacpp_models", return_value=["my-model"]):
+            update, status = app.refresh_model_list("llamacpp")
+        self.assertEqual(update["choices"], ["my-model"])
+        self.assertTrue(status.startswith("✅"))
+
+    def test_llamacpp_unreachable_returns_warning(self):
+        """refresh_model_list returns warning when llama.cpp server is down."""
+        app = self._import()
+        with patch.object(app, "fetch_llamacpp_models", return_value=[]):
+            update, status = app.refresh_model_list("llamacpp")
+        self.assertIn("⚠️", status)
+
+    def test_non_local_backend_returns_configured_model(self):
+        """refresh_model_list for openai / anthropic shows the configured model."""
+        app = self._import()
+        update, status = app.refresh_model_list("openai")
+        self.assertIn("ℹ️", status)
+
+    def test_default_backend_resolves_to_config_backend(self):
+        """Passing 'default' for backend falls back to the config-level default."""
+        app = self._import()
+        # Should not raise; result depends on config but must return (dict, str)
+        update, status = app.refresh_model_list("default")
+        self.assertIsInstance(status, str)
+
+
 if __name__ == "__main__":
     unittest.main()

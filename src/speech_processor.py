@@ -65,14 +65,45 @@ TARGET_SAMPLE_RATE = 16_000           # Hz required by the model
 MAX_SEGMENT_SECONDS = 119             # keep under the 2-minute recommended limit
 SUPPORTED_LANGUAGES = ("en", "fr", "de", "es", "pt", "ja")
 
-# Task-specific prompt templates (from official model card)
+# Map BCP-47 codes → full language names expected by the model prompt.
+# The official model card uses full names, e.g. "translate the speech to French."
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+    "pt": "Portuguese",
+    "ja": "Japanese",
+    "it": "Italian",
+    "zh": "Mandarin",
+}
+
+# Task-specific prompt templates — matched exactly to the official model card.
+# Reference: https://huggingface.co/ibm-granite/granite-speech-5.0-2b
+#
+# ASR prompts:
+#   "can you transcribe the speech into a written format?"
+#   "transcribe the speech verbatim"
+# AST prompts:
+#   "translate the speech to <language>."   ← simple, canonical form
+#
+# IMPORTANT: {target_language} is substituted with the FULL language name
+# (e.g. "French"), NOT the BCP-47 code (e.g. "fr").  Passing "fr" causes the
+# model to ignore the instruction and output the source language instead.
 PROMPT_TEMPLATES = {
-    "transcribe": "<|audio|>transcribe the speech with proper punctuation and capitalization.",
-    "transcribe_verbatim": "<|audio|>transcribe the speech verbatim.",
-    "translate_to_en": "<|audio|>translate the speech to English with proper punctuation and capitalization.",
+    "transcribe": (
+        "<|audio|>can you transcribe the speech into a written format?"
+    ),
+    "transcribe_verbatim": (
+        "<|audio|>transcribe the speech verbatim."
+    ),
+    # Any language → English
+    "translate_to_en": (
+        "<|audio|>translate the speech to English."
+    ),
+    # English (or any supported source) → target language (full name)
     "translate_from_en": (
-        "<|audio|>translate the speech from English to {target_language} "
-        "with proper punctuation and capitalization."
+        "<|audio|>translate the speech to {target_language}."
     ),
 }
 
@@ -419,15 +450,27 @@ class GraniteSpeechProcessor:
     ) -> SpeechResult:
         """
         Translate speech audio (any supported lang → English, or English → others).
+
+        ``source_language`` and ``target_language`` accept BCP-47 codes (e.g. "fr")
+        or full names (e.g. "French").  The model prompt **requires** the full name —
+        passing a BCP-47 code like "fr" causes the model to ignore the target and
+        return the source language instead.
         """
         if target_language == "en":
             prompt = PROMPT_TEMPLATES["translate_to_en"]
             task = "translate_to_en"
         else:
+            # Resolve BCP-47 code → full name for the prompt.
+            # e.g. "fr" → "French"; unknown codes pass through unchanged.
+            target_name = LANGUAGE_NAMES.get(target_language, target_language)
             prompt = PROMPT_TEMPLATES["translate_from_en"].format(
-                target_language=target_language
+                target_language=target_name
             )
             task = "translate_from_en"
+            logger.debug(
+                "AST prompt: target_language=%r → full name=%r → prompt=%r",
+                target_language, target_name, prompt,
+            )
         return self._run(
             audio, prompt, task, source_language, target_language, max_new_tokens
         )

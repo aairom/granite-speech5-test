@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import time
+import urllib.request
+import urllib.error
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
@@ -202,12 +204,74 @@ def translate_audio(
         return "", f"❌ Error: {exc}"
 
 
+# ── Model discovery helpers ───────────────────────────────────────────────────
+
+def fetch_ollama_models(base_url: str = "http://localhost:11434") -> list[str]:
+    """
+    Query Ollama's GET /api/tags endpoint and return a list of model name strings.
+    Returns an empty list if Ollama is unreachable or returns an error.
+    """
+    try:
+        url = base_url.rstrip("/").removesuffix("/v1") + "/api/tags"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+        return [m["name"] for m in data.get("models", [])]
+    except Exception as exc:
+        logger.debug("fetch_ollama_models failed: %s", exc)
+        return []
+
+
+def fetch_llamacpp_models(base_url: str = "http://localhost:9931/v1") -> list[str]:
+    """
+    Query llama.cpp server's GET /v1/models endpoint.
+    Returns an empty list if the server is unreachable.
+    """
+    try:
+        url = base_url.rstrip("/") + "/models"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+        return [m["id"] for m in data.get("data", [])]
+    except Exception as exc:
+        logger.debug("fetch_llamacpp_models failed: %s", exc)
+        return []
+
+
+def refresh_model_list(backend: str, base_url_override: str = "") -> Tuple[list, str]:
+    """
+    Gradio handler: fetch available models for the selected backend.
+    Returns (gr.update for model dropdown, status string).
+    """
+    cfg = get_config()
+    backend_l = backend.lower() if backend and backend != "default" else cfg.llm.backend
+    entry = getattr(cfg.llm, backend_l, cfg.llm.active_backend_entry())
+    base_url = base_url_override.strip() or entry.base_url
+
+    if backend_l == "ollama":
+        models = fetch_ollama_models(base_url)
+        if not models:
+            return gr.update(), "⚠️ Ollama unreachable or no models found. Is `ollama serve` running?"
+        current = entry.model
+        default = current if current in models else models[0]
+        return gr.update(choices=models, value=default), f"✅ Found {len(models)} model(s)"
+    elif backend_l == "llamacpp":
+        models = fetch_llamacpp_models(base_url)
+        if not models:
+            return gr.update(), "⚠️ llama.cpp server unreachable or no models found."
+        return gr.update(choices=models, value=models[0]), f"✅ Found {len(models)} model(s)"
+    else:
+        # For OpenAI / Anthropic / LM Studio, just show the configured model
+        return gr.update(choices=[entry.model], value=entry.model), f"ℹ️ Using configured model: {entry.model}"
+
+
 # ── Tab 3: LLM Interact ───────────────────────────────────────────────────────
 
 def llm_interact(
     transcript: str,
     user_question: str,
     backend_override: str,
+    model_override: str = "",
 ) -> Tuple[str, str]:
     """
     Send transcript + question to the configured (or overridden) LLM backend.
@@ -222,10 +286,13 @@ def llm_interact(
     backend = backend_override if backend_override and backend_override != "default" else cfg.llm.backend
     entry = cfg.llm.active_backend_entry() if backend == cfg.llm.backend else getattr(cfg.llm, backend.lower(), cfg.llm.active_backend_entry())
 
+    # Use the UI-selected model if provided, otherwise fall back to config
+    model = model_override.strip() if model_override and model_override.strip() else entry.model
+
     try:
         client = build_llm_client(
             backend=backend,
-            model=entry.model,
+            model=model,
             base_url=entry.base_url or None,
         )
         messages = [
@@ -270,6 +337,7 @@ def full_pipeline(
     verbatim: bool,
     user_question: str,
     backend_override: str,
+    model_override: str = "",
 ) -> Tuple[str, str, str]:
     """
     Run ASR then immediately pass the transcript to the LLM.
@@ -279,7 +347,7 @@ def full_pipeline(
     if transcript.startswith(""):
         return transcript, "", asr_meta
 
-    llm_reply, llm_meta = llm_interact(transcript, user_question, backend_override)
+    llm_reply, llm_meta = llm_interact(transcript, user_question, backend_override, model_override)
     combined_meta = f"ASR → {asr_meta}\nLLM → {llm_meta}"
     return transcript, llm_reply, combined_meta
 
@@ -419,8 +487,8 @@ with configurable LLM backends for downstream processing.
         # ── Tab 3: LLM Interact ───────────────────────────────────────────────
         with gr.Tab("🤖 LLM Interact"):
             gr.Markdown(
-                "Send a transcript (paste it or copy from the Transcribe tab) "
-                "to your configured LLM backend."
+                "Send a transcript to your configured LLM backend.  "
+                "Click **🔄 Refresh** to discover models from Ollama / llama.cpp."
             )
             with gr.Row():
                 with gr.Column():
@@ -432,18 +500,39 @@ with configurable LLM backends for downstream processing.
                         placeholder="Summarise this transcript, or ask a question about it…",
                         lines=3,
                     )
-                    backend_dd = gr.Dropdown(
-                        choices=backend_choices,
-                        value="default",
-                        label=f"LLM Backend override (default: {cfg.llm.backend})",
+                    with gr.Row():
+                        backend_dd = gr.Dropdown(
+                            choices=backend_choices,
+                            value="default",
+                            label=f"Backend (default: {cfg.llm.backend})",
+                        )
+                        btn_refresh_models = gr.Button("🔄 Refresh", scale=0)
+                    model_dd = gr.Dropdown(
+                        choices=[cfg.llm.active_backend_entry().model],
+                        value=cfg.llm.active_backend_entry().model,
+                        allow_custom_value=True,
+                        label="Model (editable — type any name or pick from list)",
+                    )
+                    refresh_status = gr.Textbox(
+                        label="", lines=1, interactive=False, show_label=False
                     )
                     btn_llm = gr.Button("Send to LLM", variant="primary")
                 with gr.Column():
                     llm_reply_out = gr.Textbox(label="LLM reply", lines=12, interactive=False)
                     meta_out_3 = gr.Textbox(label="Metadata", lines=2, interactive=False)
+            btn_refresh_models.click(
+                refresh_model_list,
+                inputs=[backend_dd],
+                outputs=[model_dd, refresh_status],
+            )
+            backend_dd.change(
+                refresh_model_list,
+                inputs=[backend_dd],
+                outputs=[model_dd, refresh_status],
+            )
             btn_llm.click(
                 llm_interact,
-                inputs=[transcript_in_3, question_in, backend_dd],
+                inputs=[transcript_in_3, question_in, backend_dd, model_dd],
                 outputs=[llm_reply_out, meta_out_3],
             )
 
@@ -465,10 +554,21 @@ with configurable LLM backends for downstream processing.
                         placeholder="Summarise this transcript concisely.",
                         lines=3,
                     )
-                    backend_dd_4 = gr.Dropdown(
-                        choices=backend_choices,
-                        value="default",
-                        label="LLM Backend override",
+                    with gr.Row():
+                        backend_dd_4 = gr.Dropdown(
+                            choices=backend_choices,
+                            value="default",
+                            label="Backend override",
+                        )
+                        btn_refresh_models_4 = gr.Button("🔄 Refresh", scale=0)
+                    model_dd_4 = gr.Dropdown(
+                        choices=[cfg.llm.active_backend_entry().model],
+                        value=cfg.llm.active_backend_entry().model,
+                        allow_custom_value=True,
+                        label="Model",
+                    )
+                    refresh_status_4 = gr.Textbox(
+                        label="", lines=1, interactive=False, show_label=False
                     )
                     btn_pipeline = gr.Button("Run Pipeline", variant="primary")
                 with gr.Column():
@@ -481,9 +581,19 @@ with configurable LLM backends for downstream processing.
                     pipeline_meta = gr.Textbox(
                         label="Metadata", lines=3, interactive=False
                     )
+            btn_refresh_models_4.click(
+                refresh_model_list,
+                inputs=[backend_dd_4],
+                outputs=[model_dd_4, refresh_status_4],
+            )
+            backend_dd_4.change(
+                refresh_model_list,
+                inputs=[backend_dd_4],
+                outputs=[model_dd_4, refresh_status_4],
+            )
             btn_pipeline.click(
                 full_pipeline,
-                inputs=[audio_input_4, verbatim_cb_4, question_in_4, backend_dd_4],
+                inputs=[audio_input_4, verbatim_cb_4, question_in_4, backend_dd_4, model_dd_4],
                 outputs=[pipeline_transcript, pipeline_reply, pipeline_meta],
             )
 

@@ -63,7 +63,7 @@ class LLMConfig:
     backend: str = "ollama"
     ollama: LLMBackendEntry = field(
         default_factory=lambda: LLMBackendEntry(
-            base_url="http://localhost:11434/v1", model="granite3.3:8b"
+            base_url="http://localhost:11434/v1", model="granite4.2:latest"
         )
     )
     lmstudio: LLMBackendEntry = field(

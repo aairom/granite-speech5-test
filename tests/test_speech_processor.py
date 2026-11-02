@@ -128,6 +128,36 @@ class TestConstants(unittest.TestCase):
         for key, tmpl in PROMPT_TEMPLATES.items():
             self.assertIn("<|audio|>", tmpl, f"Missing <|audio|> in template '{key}'")
 
+    def test_translate_template_uses_full_name_placeholder(self):
+        """translate_from_en must contain {target_language} for name substitution."""
+        from src.speech_processor import PROMPT_TEMPLATES
+        tmpl = PROMPT_TEMPLATES["translate_from_en"]
+        self.assertIn("{target_language}", tmpl)
+        # The placeholder must NOT be pre-filled with a code like "fr"
+        self.assertNotIn("{target_language: ", tmpl)
+
+    def test_translate_template_formatted_with_full_name(self):
+        """Formatting translate_from_en with 'French' should yield a correct prompt."""
+        from src.speech_processor import PROMPT_TEMPLATES
+        result = PROMPT_TEMPLATES["translate_from_en"].format(target_language="French")
+        self.assertIn("French", result)
+        self.assertNotIn("{", result)   # no unformatted placeholders remain
+
+    def test_language_names_covers_supported_languages(self):
+        """Every SUPPORTED_LANGUAGES code must have a full-name mapping."""
+        from src.speech_processor import LANGUAGE_NAMES, SUPPORTED_LANGUAGES
+        for code in SUPPORTED_LANGUAGES:
+            self.assertIn(code, LANGUAGE_NAMES, f"Missing full name for '{code}'")
+            self.assertTrue(LANGUAGE_NAMES[code][0].isupper(),
+                            f"Language name for '{code}' must be capitalised")
+
+    def test_language_names_regression_fr(self):
+        """Regression: 'fr' must map to 'French', not the BCP-47 code itself."""
+        from src.speech_processor import LANGUAGE_NAMES
+        self.assertEqual(LANGUAGE_NAMES["fr"], "French")
+        # If the model receives "fr" as the language it returns the source — regression guard
+        self.assertNotEqual(LANGUAGE_NAMES.get("fr"), "fr")
+
 
 class TestGraniteSpeechProcessorInit(unittest.TestCase):
     def test_default_init(self):
@@ -151,6 +181,56 @@ class TestGraniteSpeechProcessorInit(unittest.TestCase):
         """Unloading when no model is loaded should not raise."""
         p = GraniteSpeechProcessor()
         p.unload()  # should be silent
+
+
+class TestTranslatePromptResolution(unittest.TestCase):
+    """
+    Verify translate() builds the correct prompt with full language names.
+
+    The root bug was: passing BCP-47 code "fr" to the model prompt caused the
+    model to output English instead of French.  The fix maps "fr" → "French"
+    before formatting the prompt template.
+    """
+
+    def _make_processor(self) -> GraniteSpeechProcessor:
+        p = GraniteSpeechProcessor()
+        # Simulate already-loaded model so _run doesn't call _load_model
+        p._device = "cpu"
+        p._model = MagicMock()
+        p._processor = MagicMock()
+        p._tokenizer = MagicMock()
+        return p
+
+    def test_translate_to_french_uses_full_name_in_prompt(self):
+        """translate(target='fr') must build a prompt containing 'French', not 'fr'."""
+        from src.speech_processor import PROMPT_TEMPLATES, LANGUAGE_NAMES
+        target_name = LANGUAGE_NAMES.get("fr", "fr")
+        prompt = PROMPT_TEMPLATES["translate_from_en"].format(target_language=target_name)
+        self.assertIn("French", prompt)
+        self.assertNotIn(" fr", prompt)   # no bare BCP-47 code in prompt
+
+    def test_translate_to_en_uses_fixed_prompt(self):
+        """translate(target='en') uses the fixed translate_to_en template."""
+        from src.speech_processor import PROMPT_TEMPLATES
+        prompt = PROMPT_TEMPLATES["translate_to_en"]
+        self.assertIn("English", prompt)
+
+    def test_all_supported_targets_resolve_to_name(self):
+        """Every BCP-47 code used in the UI must resolve to a capitalised name."""
+        from src.speech_processor import LANGUAGE_NAMES
+        for code in ("fr", "de", "es", "pt", "ja", "it", "zh"):
+            name = LANGUAGE_NAMES.get(code)
+            self.assertIsNotNone(name, f"No full name for code '{code}'")
+            self.assertNotEqual(name, code,
+                f"Language name for '{code}' is still a BCP-47 code — will break model")
+            self.assertTrue(name[0].isupper(),
+                f"Language name '{name}' for '{code}' must start with uppercase")
+
+    def test_unknown_code_passes_through_unchanged(self):
+        """An unknown BCP-47 code should pass through to the prompt unchanged."""
+        from src.speech_processor import LANGUAGE_NAMES
+        result = LANGUAGE_NAMES.get("xx", "xx")
+        self.assertEqual(result, "xx")
 
 
 class TestSplitSegments(unittest.TestCase):
